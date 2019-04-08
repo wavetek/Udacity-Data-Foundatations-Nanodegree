@@ -1,0 +1,83 @@
+--UDACITY PROJECT 3:  Questions for Slides (CLEAN COPY)
+
+--Slide 1. What music should Chinook add next?  What Genres have been most popular in last 3 months?
+SELECT A.Name ArtistName, G.Name GenreName, SUM(IL.UnitPrice * IL.Quantity) Sales_Last_90_days
+FROM InvoiceLine IL
+JOIN Track T
+ON IL.TrackId = T.TrackId
+JOIN Album AL
+ON AL.AlbumId = T.AlbumId
+JOIN Artist A
+ON A.ArtistId = AL.ArtistId
+JOIN Invoice I
+ON I.InvoiceId = IL.InvoiceId
+JOIN Genre G
+ON G.GenreId = T.GenreId
+WHERE I.InvoiceDate >= '2013-09-22 00:00:00'
+GROUP BY 1
+ORDER BY 3 DESC
+;
+--top selling artists are U2, Lost (tv), then Smashing Pumpkins
+
+
+--Slide 2. What is the total avg spent by customers?
+SELECT C.CustomerId CustomerId, C.FirstName FirstName, C.LastName LastName, AVG(I.Total) avg_amt
+FROM Customer C
+JOIN Invoice I
+ON C.CustomerId = I.CustomerId
+JOIN InvoiceLine IL
+ON I.InvoiceId = IL.InvoiceId
+GROUP BY 1
+ORDER BY 4 DESC
+;
+--total avg is 9.307 ~ $9.31
+--Then of customers who spent higher than 9.307, what is the avg amt they spent?
+
+SELECT C.CustomerId CustomerId, C.FirstName FirstName, C.LastName LastName, AVG(I.Total) avg_amt
+FROM Customer C
+JOIN Invoice I
+ON C.CustomerId = I.CustomerId
+JOIN InvoiceLine IL
+ON I.InvoiceId = IL.InvoiceId
+GROUP BY 1
+ORDER BY 4 DESC
+HAVING AVG(I.Total) > 9.307
+;
+--avg is 10.828 ~ $10.83, only 13 customers of 59.
+
+
+--Slide 3. How much is each service rep handling?  Is 1 rep overloaded?
+WITH t1 AS (
+            SELECT E.EmployeeId EmployeeId, C.Country Country, SUM(IL.UnitPrice * IL.Quantity) order_amt
+            FROM Employee E
+            JOIN Customer C
+            ON E.EmployeeId = C.SupportRepId
+            JOIN Invoice I
+            ON I.CustomerId = C.CustomerId
+            JOIN InvoiceLine IL
+            ON I.InvoiceId = IL.InvoiceId
+            GROUP BY 1, 2
+            ORDER BY 3 DESC),
+
+    t2 AS (
+          SELECT Country, MAX(order_amt) order_amt
+          FROM t1
+          GROUP BY 1)
+
+SELECT t1.EmployeeId, t1.Country, t1.order_amt
+FROM t1
+JOIN t2
+ON t1.Country = t2.Country AND t1.order_amt = t2.order_amt
+;
+
+
+----Slide 4. What day of week should promo be sent to boost sales? (sunday is 0)
+SELECT strftime('%w',InvoiceDate) AS day_of_week,
+SUM(IL.UnitPrice * IL.Quantity) AS order_qty
+FROM Invoice I
+JOIN InvoiceLine IL
+ON I.InvoiceId = IL.InvoiceId
+GROUP BY 1
+ORDER BY 2 DESC
+;
+--Wednesday had most sales all-time w/ 348.78, Tuesday was worst with 321.81.
